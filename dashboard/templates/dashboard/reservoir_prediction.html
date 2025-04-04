@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reservoir Predictions</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1>Reservoir Predictions</h1>
+    <label for="dateInput">Select Date:</label>
+    <input type="date" id="dateInput" name="dateInput">
+
+    <div id="map" style="width: 100%; height: 500px;"></div>
+
+    <!-- MAE Display Section -->
+    <div id="maeDisplay" style="margin-top: 20px;">
+        <h3>Mean Absolute Error (MAE) CNN Model: <span id="maeCNN">N/A</span></h3>
+    </div>
+    <div id="maeDisplay2" style="margin-top: 20px;">
+        <h3>Mean Absolute Error (MAE) Linear Regression Model: <span id="maeLinReg">N/A</span></h3>
+    </div>
+
+
+    <canvas id="predictionChart" style="width: 100%; height: 400px;"></canvas>
+
+    <script>
+        let predictionChart;
+        const map = L.map('map').setView([31.9686, -99.9018], 6);  // Centered on Texas
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const reservoirs = [
+            {% for reservoir in reservoirs %}
+            {
+                name: "{{ reservoir.name }}",
+                lat: {{ reservoir.lat }},
+                lon: {{ reservoir.lon }},
+                id: "{{ reservoir.stn_id }}"
+            },
+            {% endfor %}
+        ];
+
+        console.log(reservoirs);  // This will help you see what is actually being populated
+
+        reservoirs.forEach(reservoir => {
+            const marker = L.marker([reservoir.lat, reservoir.lon]).addTo(map);
+            marker.bindPopup(`<b>${reservoir.name}</b><br><button onclick="onReservoirClick('${reservoir.id}')">View Predictions</button>`);
+        });
+
+        // Function to handle reservoir clicks
+        function onReservoirClick(reservoirId) {
+            const selectedDate = document.getElementById('dateInput').value;
+            if (selectedDate) {
+                fetchReservoirData(reservoirId, selectedDate);
+            } else {
+                alert('Please select a date first.');
+            }
+        }
+
+        // Function to fetch data for the selected reservoir and date
+        function fetchReservoirData(reservoirId, selectedDate) {
+            fetch(`/api/reservoir_data/${reservoirId}?date=${selectedDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    const actualValues = data.actual;  // Actual values from API
+                    const predicted_CNN = data.predicted_pytorch;  // Predicted values from API
+                    const predicted_linreg = data.predicted_sklearn;  // Predicted values from API
+                    const MAE_CNN = data.mae_pytorch;  // MAE pytorch values from API
+                    const MAE_linreg = data.mae_sklearn;  // MAE pytorch values from API
+                    const modelDates = data.dates;
+                    drawChart(actualValues, predicted_CNN, predicted_linreg, MAE_CNN, MAE_linreg, modelDates);
+                    updateMAE(MAE_CNN);  // Update MAE display
+                    updateMAE2(MAE_linreg);  // Update MAE display
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Function to draw the chart
+        function drawChart(actualValues, predicted_CNN, predicted_linreg, MAE_CNN, MAE_linreg, modelDates) {
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+
+            // If a chart instance already exists, destroy it before creating a new one
+            if (predictionChart) {
+                predictionChart.destroy();
+            }
+
+            const data = {
+                labels: modelDates,  // Use actual dates from the response
+                datasets: [
+                    {
+                        label: 'Actual Values',
+                        data: actualValues,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Predicted CNN Values',
+                        data: predicted_CNN,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Predicted Linear Regression Values',
+                        data: predicted_linreg,
+                        borderColor: 'rgba(0, 255, 0, 1)',
+                        fill: false
+                    }
+                ]
+            };
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+
+            predictionChart = new Chart(ctx, config);
+            console.log('MAE for CNN:', MAE_CNN);
+            console.log('MAE for LinReg:', MAE_linreg);
+        }
+
+        // Function to update the MAE display
+        function updateMAE(maeCNN) {
+            document.getElementById('maeCNN').textContent = maeCNN.toFixed(2);
+        }
+
+        // Function to update the MAE display
+        function updateMAE2(maeLinReg) {
+            document.getElementById('maeLinReg').textContent = maeLinReg.toFixed(2);
+        }
+
+
+    </script>
+</body>
+</html>

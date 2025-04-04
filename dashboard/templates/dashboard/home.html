@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reservoirs Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <h1>Reservoirs Map</h1>
+
+
+    <!-- Link to the predictions page -->
+    <a href="{% url 'reservoir_predictions' %}" style="display: inline-block; margin-bottom: 20px; padding: 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        View Reservoir Predictions
+    </a>
+
+
+    <div id="map" style="width: 100%; height: 500px;"></div>
+
+    <script>
+        const map = L.map('map').setView([31.9686, -99.9018], 6);  // Centered on Texas
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const reservoirs = [
+            {% for reservoir in reservoirs %}
+            {
+                name: "{{ reservoir.name }}",
+                lat: {{ reservoir.lat }},
+                lon: {{ reservoir.lon }},
+                url: "{% url 'reservoir_detail' reservoir.stn_id %}"
+            },
+            {% endfor %}
+        ];
+
+        reservoirs.forEach(reservoir => {
+            const marker = L.marker([reservoir.lat, reservoir.lon]).addTo(map);
+            marker.bindPopup(`<b>${reservoir.name}</b><br><a href="${reservoir.url}">View Details</a>`);
+        });
+    </script>
+</body>
+</html>
