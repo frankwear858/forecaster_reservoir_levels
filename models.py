@@ -1,6 +1,5 @@
 ##
 import os.path
-
 import joblib
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -202,23 +201,6 @@ def train_reservoir_CNN():
 
     n_epochs_options = [5, 10, 25, 50, 75, 100, 150, 200, 500]  # Different numbers of epochs to try
 
-    # class ReservoirCNN(nn.Module):
-    #     def __init__(self, input_dim):
-    #         super(ReservoirCNN, self).__init__()
-    #         self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=3)
-    #         self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3)
-    #         self.fc1 = nn.Linear(32 * (input_dim - 4), 64)  # input_dim - 4 because of kernel size reduction
-    #         self.fc2 = nn.Linear(64, 1)
-    #
-    #     def forward(self, x):
-    #         x = x.unsqueeze(1)  # Add a channel dimension: (batch_size, 1, input_dim)
-    #         x = torch.relu(self.conv1(x))
-    #         x = torch.relu(self.conv2(x))
-    #         x = x.view(x.size(0), -1)  # Flatten for fully connected layer
-    #         x = torch.relu(self.fc1(x))
-    #         x = self.fc2(x)
-    #         return x
-
     # Convert data to PyTorch tensors
     def to_tensor(data, features, target):
         X = torch.tensor(data[features].values, dtype=torch.float32)
@@ -308,9 +290,6 @@ def train_reservoir_CNN():
         model_path = os.path.join('models', f'{reservoir}_CNN.pth')
         torch.save(best_model, model_path)
         print(f'saved {model_path}!')
-
-
-##
 
 
 ##
